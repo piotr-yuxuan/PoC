@@ -6,7 +6,6 @@ You can find gentle introductions to related topics in the [bibliography](https:
 
 # Another game of Chess
 
- * auto-gen TOC:
 {:toc}
 
 __Salient features__ (links point to technical insights):
