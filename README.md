@@ -2,7 +2,7 @@
 
 Hence the name **POC**: proof of concept, project on chess and perhaps practice of concentration.
 
-You can find gentle introductions to related topics in the [bibliography]().
+You can find gentle introductions to related topics in the [bibliography](https://github.com/piotr-yuxuan/PoC/wiki/Bibliography).
 
 # Another game of Chess
 
