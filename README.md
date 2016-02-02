@@ -6,6 +6,9 @@ You can find gentle introductions to related topics in the [bibliography](https:
 
 # Another game of Chess
 
+ * auto-gen TOC:
+{:toc}
+
 __Salient features__ (links point to technical insights):
 
  * [Functionnal programming](https://github.com/piotr-yuxuan/PoC/wiki/Functionnal-programming): Clojure language;
