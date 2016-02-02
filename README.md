@@ -8,12 +8,12 @@ You can find gentle introductions to related topics in the [bibliography]().
 
 __Salient features__ (links point to technical insights):
 
- * [Functionnal programming](): Clojure language;
- * [Logic programming](): miniKanren-based library `core.logic`;
- * [Artificial intelligence](): minmax algorithm based on a metric;
- * [Context-free grammars](): parser with the library `instaparse`;
- * [Graphical interface](): Unity game engine through Arcadia;
- * [Focused on things done](): can't do a lot but try to do it well.
+ * [Functionnal programming](https://github.com/piotr-yuxuan/PoC/wiki/Functionnal-programming): Clojure language;
+ * [Logic programming](https://github.com/piotr-yuxuan/PoC/wiki/Logic-programming): miniKanren-based library `core.logic`;
+ * [Artificial intelligence](https://github.com/piotr-yuxuan/PoC/wiki/Artificial-intelligence): minmax algorithm based on a metric;
+ * [Context-free grammars](https://github.com/piotr-yuxuan/PoC/wiki/Context-free grammars): parser with the library `instaparse`;
+ * [Graphical interface](https://github.com/piotr-yuxuan/PoC/wiki/Graphical-interface): Unity game engine through Arcadia;
+ * [Focused on things done](https://github.com/piotr-yuxuan/PoC/wiki/Focused-on-things-done): can't do a lot but try to do it well.
 
 __How much novel from [existing projects](https://github.com/search?p=2&q=chess+logic&ref=searchresults&type=Repositories&utf8=%E2%9C%93)?__
 
