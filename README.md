@@ -13,7 +13,7 @@ __Salient features__ (links point to technical insights):
  * [Artificial intelligence](): minmax algorithm based on a metric;
  * [Context-free grammars](): parser with the library `instaparse`;
  * [Graphical interface](): Unity game engine through Arcadia;
- * [Focused on things done](): can't do a lot but try to di it well.
+ * [Focused on things done](): can't do a lot but try to do it well.
 
 __How much novel from [existing projects](https://github.com/search?p=2&q=chess+logic&ref=searchresults&type=Repositories&utf8=%E2%9C%93)?__
 
@@ -57,7 +57,7 @@ You may like to keep following ongoing steps:
  * Compile and install the project (`lein repl install`);
  * If you like your terminal enough, launch a REPL and start exploring (`lein repl`)
  
-Few piece of advice to help you if you want to use Emacs (and Emacs-live) to get hands in the code: open a Clojure file (`*.clj`) and press `C-c M-j` to start jack a new REPL in, then go back in the file frame and hit `C-c M-n` to change the REPL working namespace; finally load the file with `C-c C-k`. Piece of cake :-) Other key bindings are available at [this paragraph](https://github.com/clojure-emacs/cider#using-cider-mode).
+Few piece of advice to help you if you want to use Emacs (and Emacs-live) to get hands in the code: open a Clojure file (`*.clj`) and press <kbd>C-c M-j</kbd> to start jack a new REPL in, then go back in the file frame and hit <kbd>C-c M-n</kbd> to change the REPL working namespace; finally load the file with <kbd>C-c C-k</kbd>. Piece of cake :-) Other key bindings are available at [this paragraph](https://github.com/clojure-emacs/cider#using-cider-mode).
 
 ## Usage
 
