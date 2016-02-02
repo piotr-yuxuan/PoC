@@ -3,43 +3,30 @@
   exterior chess data, functions to generate a board out of a state and
   few side-effect functions to display the board.
 
-  Two parsers are available here
-  It contains a parser for a custom game notation, very close to
-  Portable Game Notation grammar. However, each move of the movetext
-  contains the initial and final positions of the piece. That's to say,
-  contrarily to the example shown in Wikipedia, the string '1. e4 e5'
-  means: for first move, the white piece in e4 is moved to e5.
+  Two parsers are available here. The first is a draft for the second
+  which parses Portable Game Notation into a final state. Both of them
+  use algebraic chess notation. See the bibliography for firther
+  details.
 
-  See further explanation on
-  https://en.wikipedia.org/wiki/Portable_Game_Notation.
+  The first parser considers each turns ('1. e4 e5') contains the
+  initial and final positions for the piece to move: here it should
+  mean: move the piece from e4 to e5.
+
+  The second parser use hints to infers which piece should be moved to
+  the given position. Each turn show to position: the first one is
+  played by the white side and the other one by black side.
 
   Beware: this is a naive grammar which doesn't handle all the
   guidelines, just what seems the most important. The whole
-  specification can be found on
-  http://www6.chessclub.com/help/PGN-spec.
-
-  For the official PGN use inference, I should first correct all bugs in
-  the logic then I will be able to implement it why a custom
-  parser (more specifically, by upgrading the translator and reducer)."
+  specification can be found in the bibliography."
   (:require [poc.commons :refer :all]
             [poc.boardobjects :refer :all]
             [poc.gamelogic :refer :all])
   (:require [instaparse.core :as i]))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; ■ 9632 ■ 25A0 BLACK SQUARE                               ;;
-;; □ 9633 □ 25A1 WHITE SQUARE                               ;;
-;; ▢ 9634 ▢ 25A2 WHITE SQUARE WITH ROUNDED CORNERS          ;;
-;; ▣ 9635 ▣ 25A3 WHITE SQUARE CONTAINING BLACK SMALL SQUARE ;;
-;; ▤ 9636 ▤ 25A4 SQUARE WITH HORIZONTAL FILL                ;;
-;; ▥ 9637 ▥ 25A5 SQUARE WITH VERTICAL FILL                  ;;
-;; ▦ 9638 ▦ 25A6 SQUARE WITH ORTHOGONAL CROSSHATCH FILL     ;;
-;; ▧ 9639 ▧ 25A7 SQUARE WITH UPPER LEFT TO LOWER RIGHT FILL ;;
-;; ▨ 9640 ▨ 25A8 SQUARE WITH UPPER RIGHT TO LOWER LEFT FILL ;;
-;; ▩ 9641 ▩ 25A9 SQUARE WITH DIAGONAL CROSSHATCH FILL       ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 (defn format-state
+  "Prepare a state to be displayed hence returns a list of vectors
+  filled with the color, the type and the position of the piece."
   [state]
   (mapcat (fn [[colour rest]]
             (vec (map (fn [[type & positions]]
@@ -59,7 +46,7 @@
 
 (defn board-from-state
   "Returns the string for the board. This string can be partitionned
-then display as is."
+  then display as is."
   ([state]
    (board-from-state state blank-board))
   ([state board]
@@ -82,43 +69,30 @@ then display as is."
            (partition boardsize
                       (board-from-state state board)))))
 
-(let [history [[[2 2] [2 5]] ;; white
-               [[8 4] [8 2]] ;; black
-               [[2 5] [4 5]] ;; white, and so on…
-               [[8 2] [1 2]]]
-      depart-state {:history [[[1 1] [2 2]]]
-                    :player :white
-                    :positions {:white #{['queen [1 1] [2 2]] ['queen [8 1]]
-                                         ['queen [7 3]] ['queen [7 4]]}
-                                :black #{['queen [8 4]]}}}]
-  (print "Depart ")
-  (display-state-on-board depart-state)
-  (println "Arrival with custom board ")
-  (display-state-on-board (move-pieces-from-state-through-history depart-state
-                                                                  history)
-                          ;; You can change the defautl blank board
-                          (str-mutate blank-board "?" 29 1)))
-
 (comment
-  "Don't work, don't know why yet."
-  (let [test-state {:history [[[1 1] [2 2]]]
-                    :player :white
-                    :positions {:white #{['queen [1 1] [2 2]] ['queen [8 1]]
-                                         ['queen [7 3]] ['queen [7 4]]}
-                                :black #{['queen [8 4]]}}}]
-    (map
-     (fn [history]
-       (println history)
-       (display-state-on-board (reduce #(move-piece % (first %2) (second %2))
-                                         test-state
-                                         history)))
-     (reduce #(vec (conj % (vec (concat (last %) [%2])))) [] [[[2 2] [2 5]]
-                                                              [[8 4] [8 8]]
-                                                              [[2 5] [4 5]]]))))
+  (let [history [[[2 2] [2 5]] ;; white
+                 [[8 4] [8 2]] ;; black
+                 [[2 5] [4 5]] ;; white, and so on…
+                 [[8 2] [1 2]]]
+        depart-state {:history [[[1 1] [2 2]]]
+                      :player :white
+                      :positions {:white #{['queen [1 1] [2 2]] ['queen [8 1]]
+                                           ['queen [7 3]] ['queen [7 4]]}
+                                  :black #{['queen [8 4]]}}}]
+    (print "Depart ")
+    (display-state-on-board depart-state)
+    (println "Arrival with custom board ")
+    (display-state-on-board (move-pieces-from-state-through-history depart-state
+                                                                    history)
+                            ;; You can change the defautl blank board
+                            (str-mutate blank-board "?" 29 1))))
 
-(def whitespace (i/parser "whitespace = #'\\s+'"))
+(def whitespace
+  "Specific parser for blank spaces."
+  (i/parser "whitespace = #'\\s+'"))
 
 (def common-definitions
+  "Common definitions for grammars."
   (str-n
    "Tags = MandatoryTags SupplementaryTag*"
    "<MandatoryTags> = Event Site Date Round White Black Result"
@@ -438,8 +412,8 @@ Nf2 42. g4 Bd3 43. Re6 1/2-1/2")
 
 (def pgn-parser
   "If I also parse the FEN notation I will be able to start from any
-  board (with enhanced reducer parameter) but this seems a bit too far
-  as now."
+  board (with enhanced reducer parameter) but this seems a bit too
+  specific for now. I might add it perhaps in a later time."
   (let [tokeniser pgn-tokeniser
         presenter (fn [input]
                     (let [upper :Movetext
@@ -460,14 +434,22 @@ Nf2 42. g4 Bd3 43. Re6 1/2-1/2")
 (comment
   (pgn-parser pgn-sample))
 
-(display-state-on-board  {:positions {:white #{'(rook [1 1]) '(rook [8 1]) '(king [5 1])}
-                                     :black #{'(rook [1 8]) '(rook [8 8]) '(king [5 8])}}
+(display-state-on-board  {:positions {:white #{'(rook [1 1])
+                                               '(rook [8 1])
+                                               '(king [5 1])}
+                                      :black #{'(rook [1 8])
+                                               '(rook [8 8])
+                                               '(king [5 8])}}
                          :history []
                          :player :white})
 
 (display-state-on-board (move-pieces-from-state-through-history
-                         {:positions {:white #{'(rook [1 1]) '(rook [8 1]) '(king [5 1])}
-                                      :black #{'(rook [1 8]) '(rook [8 8]) '(king [5 8])}}
+                         {:positions {:white #{'(rook [1 1])
+                                               '(rook [8 1])
+                                               '(king [5 1])}
+                                      :black #{'(rook [1 8])
+                                               '(rook [8 8])
+                                               '(king [5 8])}}
                           :history []
                           :player :white}
                          [[[8 1] [8 8]]
