@@ -18,7 +18,8 @@ __Salient features__ (links point to technical insights):
 __How much novel from [existing projects](https://github.com/search?p=2&q=chess+logic&ref=searchresults&type=Repositories&utf8=%E2%9C%93)?__
 
  * Only one (aborted) [other Chess project](https://github.com/matlux/clojure-core-logic-chess) using Clojure and core.logic;
- * Only one [other project](https://github.com/Arunothia/ILP) using logic programming.
+ * Only one [other project](https://github.com/Arunothia/ILP) using logic programming;
+ * Only one [GitHub project](https://github.com/MysteryMachine/sbmws) using Clojure and Unity altogether through Arcadia (according to [this search](https://github.com/search?utf8=%E2%9C%93&q=arcadia+clojure)).
 
 __How much the same for me?__
 
