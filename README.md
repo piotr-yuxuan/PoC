@@ -57,8 +57,34 @@ You may like to keep following ongoing steps:
  * Hop in the freshly-cloned repository PoC (`cd PoC/`);
  * Compile and install the project (`lein repl install`);
  * If you like your terminal enough, launch a REPL and start exploring (`lein repl`)
+
+### Getting started with Emacs
  
 Few piece of advice to help you if you want to use Emacs (and Emacs-live) to get hands in the code: open a Clojure file (`*.clj`) and press <kbd>C-c M-j</kbd> to start jack a new REPL in, then go back in the file frame and hit <kbd>C-c M-n</kbd> to change the REPL working namespace; finally load the file with <kbd>C-c C-k</kbd>. Piece of cake :-) Other key bindings are available at [this paragraph](https://github.com/clojure-emacs/cider#using-cider-mode).
+
+If you encounter trouble like this when starting the REPL:
+
+```
+WARNING: The following required nREPL ops are not supported: 
+format-code format-edn ns-path refresh
+Please, install (or update) cider-nrepl 0.9.1 and restart CIDER
+WARNING: The following nREPL ops are not supported:
+artifact-list artifact-versions clean-ns configure extract-definition find-debug-fns find-symbol find-unbound hotload-dependency rename-file-or-dir resolve-missing stubs-for-interface version warm-ast-cache
+Please, install (or update) refactor-nrepl and restart REPL.
+You can mute this warning by changing cljr-suppress-middleware-warnings.
+WARNING: CIDER's version (0.9.1) does not match cider-nrepl's version (0.8.1)
+```
+
+You may like to make sure your `~/.lein/profiles.clj` contains the following:
+
+```clojure
+{:user {:plugins [[cider/cider-nrepl "0.9.1"]
+                  [refactor-nrepl "1.1.0"]]}}
+```
+
+### Setting up Unity in GNU / Linux
+
+From an ArchLinux point of view it's very easy: just install the package  `unity-editor` from the AUR (`yaourt -S unity-editor`). However, it takes 1 Gio to download it, around 10 Gio to be worked on and finally the resulting package to be installed is 3.5 Gio: if you don't have such free space in your `/tmp` directory you might consider to change temp directories in `etc/yaourtrc`.
 
 ## Usage
 
@@ -73,14 +99,6 @@ FIXME: listing of options this app accepts.
 ## Examples
 
 ...
-
-## Known bugs
-
-...
-
-## Any Other Sections
-## That You Think
-## Might be Useful
 
 ## License
 
