@@ -1,3 +1,10 @@
+;; Reste à faire :
+;; Le parsing bogue au 12ème coup noir à cause d'une capture par un pion.
+;; gérer le mouvement de capture du pion (et l'en passant tant qu'on y est)
+;; Utiliser un minimum de project et essayer de ne jamais imbriquer de calcul logique : core.logic est plutôt bon tout seul mais devient ridicule s'il doit utiliser des résultats produits par une autre logique.
+;; Finir de corriger les obstacles : l'algo est bon, son implem est améliorée mais visiblement là elle est trop lâche.
+;; Pour le jeu graphique, faire seulement un plateau et bouger les pièces en appuyant sur les cases avec un mouvement complètement libre (interdiction d'aller sur une case déjà prise).
+
 (ns poc.interface
   "Namespace for interface. It contains persers to construct state from
   exterior chess data, functions to generate a board out of a state and
@@ -17,7 +24,7 @@
   played by the white side and the other one by black side.
 
   Beware: this is a naive grammar which doesn't handle all the
-  guidelines, just what seems the most important. The whole
+  guidelines yet, just what seems the most important. The whole
   specification can be found in the bibliography."
   (:require [poc.commons :refer :all]
             [poc.boardobjects :refer :all]
@@ -35,14 +42,15 @@
           (:positions state)))
 
 (comment
-  (format-state {:player :black
-                 :history [[[8 1] [8 8]]]
-                 :positions {:white #{'(rook [8 1] [8 8])
-                                      '(rook [1 1])
-                                      '(king [5 1])}
-                             :black #{'(rook [8 8] nil)
-                                      '(rook [1 8])
-                                      '(king [5 8])}}}))
+  (= (format-state {:player :black
+                    :history [[[8 1] [8 8]]]
+                    :positions {:white #{'(rook [8 1] [8 8])
+                                         '(rook [1 1])
+                                         '(king [5 1])}
+                                :black #{'(rook [8 8] nil)
+                                         '(rook [1 8])
+                                         '(king [5 8])}}})
+     '([:white rook [8 8]] [:white rook [1 1]] [:white king [5 1]] [:black rook [1 8]] [:black king [5 8]])))
 
 (defn board-from-state
   "Returns the string for the board. This string can be partitionned
@@ -131,7 +139,7 @@
    "Movetext = Move* ?[EndResult]"
    "EndResult = '1-0' | '0-1' | '1/2-1/2'"))
 
-(def custom-sample
+(def custom-sample "Custom sample. Same as PGN but remove some tricky stuff such as rook."
   ;; This sample has no castling inside. Moreover every move has two
   ;; positions: from and to.
   ;; This sample is for the custom notation language. It doesn't fit it
@@ -174,7 +182,7 @@ Nf2 42. g4 Bd3 1/2-1/2")
 
 (custom-tokeniser custom-sample)
 
-(def pgn-sample
+(def pgn-sample "PGN sample"
   "[Event \"F/S Return Match\"]
 [Site \"Belgrade, Serbia Yugoslavia|JUG\"]
 [Date \"1992.11.04\"]
@@ -271,14 +279,22 @@ Nf2 42. g4 Bd3 43. Re6 1/2-1/2")
          (str "L = " (print-str #"[a-h]"))
          "Capture = <'x'>"))
 
+(def abbr-table
+  {"K" 'king
+   "Q" 'queen
+   "R" 'rook
+   "B" 'bishop
+   "N" 'knight
+   "P" 'pawn})
+
 (defn abbr-to-symbol
   [abbr]
-  (get {"K" 'king
-        "Q" 'queen
-        "R" 'rook
-        "B" 'bishop
-        "N" 'knight
-        "P" 'pawn} abbr))
+  (get abbr-table abbr))
+
+(defn symb-to-abbr
+  "The symbol, not the function. For example, 'pawn."
+  [symbol]
+  (-> (filter #(= symbol (second %)) abbr-table) first first))
 
 (comment
   ((i/parser pgn-token-grammar) "Kexa1?")
@@ -325,19 +341,23 @@ Nf2 42. g4 Bd3 43. Re6 1/2-1/2")
   "Returns a not ambiguous departure position. Don't look at hints such
   as file or piece once only one result is found."
   [state move choices]
-  (let [file (if (contains? move :File)
+  (let [move (if (not (contains? move :Piece))
+               (assoc move :Piece (symb-to-abbr 'pawn))
+               move)
+        file (if (contains? move :File)
                (fn [choices] (filter #(= (first %)
-                                        (-> (:File move) Integer.))
+                                        (inc (- (-> move :File first int) (int \a))))
                                     choices))
-                identity)
+               identity)
         piece (if (contains? move :Piece)
-                (fn [choices] (filter #(= (abbr-to-symbol (:Piece move))
-                                         (type-from-state-position state %))
-                                     choices))
+                (fn [choices]
+                  (filter #(= (abbr-to-symbol (:Piece move))
+                              (type-from-state-position state %))
+                          choices))
                 identity)]
     (reduce #(if (= 1 (count %)) % (apply %2 [%]))
             choices
-            [file piece])))
+            [piece file])))
 
 (defn atom-reducer
   [state move]
@@ -351,9 +371,10 @@ Nf2 42. g4 Bd3 43. Re6 1/2-1/2")
       (if-let [special (contains-some? move special-moves)]
         (if destination
           (assoc (dissoc movemap :L :F) :position destination)
-          movemap) ;; prettify structure?
+          movemap)
         (let [choices (possible-positions-to-destination state destination)
-              departure (first (ambiguity-solver state move choices))]
+              only-choice (ambiguity-solver state move choices)
+              departure (first only-choice)]
           [departure destination])))))
 
 (comment
@@ -368,10 +389,11 @@ Nf2 42. g4 Bd3 43. Re6 1/2-1/2")
   (let [inputmap (map (fn [arg] (reduce #(assoc % (first %2) (second %2)) {} arg))
                       input)]
     (reduce #(let [arrow (atom-reducer % %2)
-                   [from to] (if (vector? arrow) arrow (:position arrow))]
-               (println (str "Move: " (type-from-state-position % from)
-                             " moving from " from " to " to "."))
-               (move-piece % arrow))
+                   [from to] (if (vector? arrow) arrow (:position arrow))
+                   new-state (move-piece % arrow)]
+               (when debug
+                 (debug arrow from to new-state))
+               new-state)
             state
             inputmap)))
 
@@ -432,26 +454,26 @@ Nf2 42. g4 Bd3 43. Re6 1/2-1/2")
                     reducer)))
 
 (comment
+  (display-state-on-board  {:positions {:white #{'(rook [1 1])
+                                                 '(rook [8 1])
+                                                 '(king [5 1])}
+                                        :black #{'(rook [1 8])
+                                                 '(rook [8 8])
+                                                 '(king [5 8])}}
+                            :history []
+                            :player :white})
+
+  (display-state-on-board (move-pieces-from-state-through-history
+                           {:positions {:white #{'(rook [1 1])
+                                                 '(rook [8 1])
+                                                 '(king [5 1])}
+                                        :black #{'(rook [1 8])
+                                                 '(rook [8 8])
+                                                 '(king [5 8])}}
+                            :history []
+                            :player :white}
+                           [[[8 1] [8 8]]
+                            {:Castling :QueenSide}
+                            {:Castling :QueenSide}]))
+
   (pgn-parser pgn-sample))
-
-(display-state-on-board  {:positions {:white #{'(rook [1 1])
-                                               '(rook [8 1])
-                                               '(king [5 1])}
-                                      :black #{'(rook [1 8])
-                                               '(rook [8 8])
-                                               '(king [5 8])}}
-                         :history []
-                         :player :white})
-
-(display-state-on-board (move-pieces-from-state-through-history
-                         {:positions {:white #{'(rook [1 1])
-                                               '(rook [8 1])
-                                               '(king [5 1])}
-                                      :black #{'(rook [1 8])
-                                               '(rook [8 8])
-                                               '(king [5 8])}}
-                          :history []
-                          :player :white}
-                         [[[8 1] [8 8]]
-                          {:Castling :QueenSide}
-                          {:Castling :QueenSide}]))
