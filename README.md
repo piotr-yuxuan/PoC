@@ -28,11 +28,9 @@ __How much the same for me?__
 
 This is merely a quick-sketched pet project hence performances are not that great — just on getting things done. I believe I can still do a lot to wrangle with the famous Chess combinatorial explosion.
 
-__Can it be improved?__ Yes it can be improved in several ways for this is merely a POC (proof-of-concept or proof-of-concentration ^_^):
+__Can it be improved?__
 
- * Use multimethods for parser (but it may become less straight-forward to get);
- * Entrust the input and stop verifying every moves (but what if User is Devil?);
- * Improve speed (yes sure! some steps in this draft may overlap hense be avoided).
+Yes it can be improved in several ways for this is merely a POC (proof-of-concept or proof-of-concentration ^_^):
 
 ## Installation
 
