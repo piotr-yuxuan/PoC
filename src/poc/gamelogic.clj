@@ -7,74 +7,45 @@
             [poc.boardobjects :refer :all]
             [poc.commons :refer :all]))
 
-;; Here we just consider easy basic general moves. We define a move as a
-;; change of position: staying at the same place is not a move. This
-;; implies we will need an heuristic to determine whether we have to
-;; play or don't use that turn.
+(defn state->type-colour-position-o
+  "Constraints such as colour is the colour of the piece at [x y] in the
+  given state. At least one of the following symbol should refer to a
+  logical variable: type, colour, position."
+  [state type colour position]
+  (fresh [tail item temp]
+    (membero [colour tail] (vec (:positions state)))
+    (membero item tail)
+    (firsto item type)
+    (lasto position item)))
 
-;; Here are the pieces. They are plain functions.
-king queen rook bishop knight pawn
-
-;; The following function returns the current state of the board. It's
-;; given the afore defined map.
 (defn positions-from-state
   ([state]
-   (positions-from-state (:positions state) nil))
+   (positions-from-state state (lvar)))
   ([state colour]
-   (let [positions (:positions state)
-         reduced (if (nil? colour)
-                   (mapcat second state)
-                   (get positions colour))]
-     (filter #(-> % nil? not) (map last reduced))))
-  ([position colour turn]
-   nil))
+   (run* [position]
+     (state->type-colour-position-o state (lvar) colour position))))
 
 (comment
-  (positions-from-state poc.interface/state-after-12-white)
-  (count (positions-from-state initial-state :white)))
-
-;; TODO here I should use a bag map to make for it nicely suits. And
-;; it's fun! Moreover it would get positions-per-color to be merge into
-;; positions-from-bag so it would avoid a function to be defined just to
-;; be used once.
-;;   "Returns positions from different arguments: 1) All occupied
-;;  positions; 2) Positions of the given colour; 3) Positions of the
-;;  colour at some previous state CAUTION TODO: the turn selector is
-;;  obviously buggy and does nothing interesting. It has to be fixed
-;;  before you use it.
-;; Obviously the previous state is not implemented yet.
-
-;; Retrieve type and colour from state
-
-(defn positions-per-color
-  ([state turn]
-   (positions-per-color state))
-  ([state]
-   (reduce #(assoc % %2 (positions-from-state state %2))
-           {} (keys (:positions initial-state)))))
+  (positions-from-state initial-state :white))
 
 (defn type-from-state-position
   [state [x y]]
-  (first (run* [q]
-           (fresh [a u v]
-             (membero a (map #(vector (first %) (last %))
-                             (get-in state [:positions (:player state)])))
-             (conso q [[u v]] a)
-             (l/== x u)
-             (l/== y v)))))
+  (first (run* [type]
+           (state->type-colour-position-o state type (lvar) [x y]))))
+
+(comment
+  (type-from-state-position initial-state [5 1]))
 
 (defn colour-from-state-position
   [state [x y]]
-  (first (run* [q]
-           (fresh [a b c d]
-             (membero a (vec (positions-per-color state)))
-             (l/== a [b c])
-             (l/== d [x y])
-             (membero d c)
-             (l/== q b)))))
+  (first (run* [colour]
+           (state->type-colour-position-o state (lvar) colour [x y]))))
 
-;; Let's use the broadly-used convention: whites are always at the
-;; bottom of the board.
+(comment
+  (colour-from-state-position initial-state [1 8]))
+
+;; Here are the pieces. They are plain functions.
+king queen rook bishop knight pawn
 
 (comment
   ;; Algorithme de détection d'obstacles :
@@ -90,7 +61,6 @@ king queen rook bishop knight pawn
     (distinct (run* [result]
                 (membero result (range 1 (inc boardsize)))
                 (fresh [u]
-                  (membero u (range 1 (inc boardsize)))
                   (conde [(fd/eq (< position result)
                                  (< position u)
                                  (< u result))]
@@ -99,72 +69,23 @@ king queen rook bishop knight pawn
                                  (< u position))])
                   (membero u obstacles))))))
 
-(defn var-bounding
-  [x? a? u?]
-  (conde [(ar/< x? a?) (ar/< x? u?) (ar/< u? a?)]
-         [(ar/< a? x?) (ar/< a? u?) (ar/< u? x?)]))
-
 (defn unreachable-positions
   [obstacles [x y] [a b]]
-  (fresh [u v]
-    (membero u (range 1 (inc boardsize))) (membero v (range 1 (inc boardsize)))
-    (conde [(l/== y b)
-            (var-bounding x a u)
-            (membero [u b] obstacles)]
-           [(l/== x a)
-            (var-bounding y b v)
-            (membero [a v] obstacles)]
-           [(and* [(l/!= x a) (l/!= y b)
-                   (fresh [_] (distanceo a u _) (distanceo b v _))])
-            (var-bounding x a u) (var-bounding y b v)
-            (membero [u v] obstacles)])))
-
-(comment
-  (test-func (fn [[a b]] (unreachable-positions (positions-from-state initial-state)
-                                               [1 1] [a b])))
-
-  (let [state {:positions {:white #{'(queen [4 1])}
-                           :black #{'(pawn [3 1]) '(pawn [4 2]) '(pawn [5 1])}}
-               :history []
-               :player :white}]
-    (= (set (test-func (fn [[a b]] (unreachable-positions (positions-from-state state)
-                                                         [4 1] [a b]))))
-       (set '(;; horizontal
-              [1 1] [2 1] [6 1] [7 1] [8 1]
-              ;; vertical
-              [4 3] [4 4] [4 5] [4 6] [4 7] [4 8]))))
-  (let [state {:positions {:white #{'(queen [4 1])
-                                    '(pawn [3 1]) '(pawn [4 2]) '(pawn [5 1])}
-                           :black #{}}
-               :history []
-               :player :white}]
-    (= (set (test-func (fn [[a b]] (unreachable-positions (positions-from-state state)
-                                                         [4 1] [a b]))))
-       (set '(;; horizontal
-              [1 1] [2 1] [6 1] [7 1] [8 1]
-              ;; vertical
-              [4 3] [4 4] [4 5] [4 6] [4 7] [4 8]))))
-  (let [state {:positions {:black #{'(queen [4 1])}
-                           :white #{'(pawn [3 1]) '(pawn [4 2]) '(pawn [5 1])}}
-               :history []
-               :player :white}]
-    (= (set (test-func (fn [[a b]] (unreachable-positions (positions-from-state state)
-                                                         [4 1] [a b]))))
-       (set '(;; horizontal
-              [1 1] [2 1] [6 1] [7 1] [8 1]
-              ;; vertical
-              [4 3] [4 4] [4 5] [4 6] [4 7] [4 8]))))
-  (let [state {:positions {:black #{'(queen [4 1])
-                                    '(pawn [3 1]) '(pawn [4 2]) '(pawn [5 1])}
-                           :white #{}}
-               :history []
-               :player :white}]
-    (= (set (test-func (fn [[a b]] (unreachable-positions (positions-from-state state)
-                                                         [4 1] [a b]))))
-       (set '(;; horizontal
-              [1 1] [2 1] [6 1] [7 1] [8 1]
-              ;; vertical
-              [4 3] [4 4] [4 5] [4 6] [4 7] [4 8])))))
+  (let [var-bounding (fn [x? a? u?]
+                       (conde [(ar/< x? a?) (ar/< x? u?) (ar/< u? a?)]
+                              [(ar/< a? x?) (ar/< a? u?) (ar/< u? x?)]))]
+    (fresh [u v]
+      (membero u (range 1 (inc boardsize))) (membero v (range 1 (inc boardsize)))
+      (conde [(l/== y b)
+              (var-bounding x a u)
+              (membero [u b] obstacles)]
+             [(l/== x a)
+              (var-bounding y b v)
+              (membero [a v] obstacles)]
+             [(and* [(l/!= x a) (l/!= y b)
+                     (fresh [_] (distanceo a u _) (distanceo b v _))])
+              (var-bounding x a u) (var-bounding y b v)
+              (membero [u v] obstacles)]))))
 
 ;; Useful as function symbols seem not to be resolved properly in core.logic.
 ;; Huh, perhaps I should use multimethod to get rid of this twist.
@@ -179,73 +100,29 @@ king queen rook bishop knight pawn
   parameters: maybe you tried to move a piece which is not yours or
   perhaps it's not your turn."
   [state [x y]]
-  (let [type (get function-table (type-from-state-position state [x y]))
-        obstacles (positions-from-state state)
-        current-player (colour-from-state-position state [x y])
-        friends (positions-from-state state (:player state))]
-    (when type
-      (distinct
+  (when type
+    (distinct
+     (let [state->o state->type-colour-position-o
+           obstacles (run* [position]
+                       (state->o state (lvar) (lvar) position))
+           friends  (run* [position]
+                           (state->o state (lvar) (:player state) position)
+                           (l/!= nil position))]
        (run* [?]
-         (fresh [a b]
+         (fresh [a b type colour]
            ;; Stay inside the board for the sake of fun
            (membero a (range 1 (inc boardsize)))
            (membero b (range 1 (inc boardsize)))
            ;; Get all available moves for that kind of piece
-           (type [x y] [a b] state)
+           (state->o state type colour [x y])
+           (project [type]
+                    (apply (get function-table type) [[x y] [a b] state]))
            ;; Unify q with working logic variables
            (l/== ? [a b])
            ;; Avoid friends
            (nafc membero ? friends)
            ;; Don't go beyond obstacles
-           (nafc unreachable-positions obstacles [x y] [a b])
-           ;; Move only your own pieces.
-           (l/== (:player state) current-player)))))))
-
-(comment
-  (defn test-func
-    [testee]
-    (distinct
-     (run* [q]
-       (fresh [a b]
-         (l/== q [a b])
-         (membero a (range 1 (inc boardsize)))
-         (membero b (range 1 (inc boardsize)))
-         (testee [a b])))))
-
-  (distinct
-     (run* [q]
-       (fresh [a b]
-         (l/== q [a b])
-         (membero a (range 1 (inc boardsize)))
-         (membero b (range 1 (inc boardsize)))
-         (unreachable-positions initial-state [4 1] [a b]))))
-
-  (test-func (fn [[a b]] (unreachable-positions (positions-from-state initial-state)
-                                               [1 1] [a b]))))
-
-;; This function can now be called:
-(let [test-state {:history [[[1 1] [2 2]]]
-                    :player :white
-                    :positions {:white #{['queen [1 1] [2 2]]}
-                                :black #{['queen [3 2]]}}}]
-  (moves-from-state-position test-state [2 2]))
-
-;; Before we used constraint programming but from here we turn into
-;; classical functionnal programming. I should try to stick to
-;; constraint programming here as it seems it would be easier to use
-;; core.logic further.
-
-(comment
-  (let [test-state {:history [[[1 1] [2 2]]]
-                    :player :white
-                    :positions {:white #{['queen [1 1] [2 2]] ['queen [8 1]]
-                                         ['queen [7 3]] ['queen [7 4]]}
-                                :black #{['queen [8 4]]}}}]
-    (reduce #(move-piece % (first %2) (second %2))
-            test-state
-            [[[2 2] [2 5]]
-             [[8 4] [8 8]]
-             [[2 5] [4 5]]])))
+           (nafc unreachable-positions obstacles [x y] [a b])))))))
 
 (defmulti castling-from-side-and-player
   "Returns {:rook [[] []] :king [[] []]}. Multimethod is more
@@ -288,12 +165,14 @@ king queen rook bishop knight pawn
 
 (defmethod move-piece (type {})
   [state arrow]
+  (println "move-piece arrow: " arrow)
+  (println "state: " state)
   (let [current-player (:player state)
         old-player-positions (get (:positions state) current-player)
-        new-player-positions (set (reduce #(change-piece-position % (first %2) (second %2))
-                                          old-player-positions
-                                          (map second (castling-from-side-and-player (:Castling arrow)
-                                                                                     current-player))))]
+        new-player-positions (reduce #(change-piece-position % (first %2) (second %2))
+                                        old-player-positions
+                                        (map second (castling-from-side-and-player (:Castling arrow)
+                                                                                   current-player)))]
     {:player (if (= :white current-player) :black :white)
      :history (conj (:history state) arrow)
      :positions (assoc (:positions state) current-player new-player-positions)}))
@@ -305,52 +184,27 @@ king queen rook bishop knight pawn
                                    (moves-from-state-position state [x1 y1]))]
       (let [current-player (:player state)
             other-player (if (= :white current-player) :black :white)
-            other-player-positions (set (change-piece-position (get-in state
-                                                                       [:positions other-player])
-                                                               [x2 y2] nil))
-            new-player-positions (set (change-piece-position (get-in state
-                                                                     [:positions current-player])
-                                                             [x1 y1] [x2 y2]))]
+            other-player-positions (change-piece-position (get-in state
+                                                                     [:positions other-player])
+                                                             [x2 y2] nil)
+            new-player-positions (change-piece-position (get-in state
+                                                                  [:positions current-player])
+                                                          [x1 y1] [x2 y2])]
         {:player (if (= :white current-player) :black :white)
          :history (conj (:history state) [[x1 y1] legal-move])
          :positions (assoc (:positions state)
                       current-player new-player-positions
                       other-player other-player-positions)}))))
 
-(comment
-  (move-piece {:positions {:white #{'(rook [1 1]) '(rook [8 1]) '(king [5 1])}
-                           :black #{'(rook [1 8]) '(rook [8 8]) '(king [5 8])}}
-               :history []
-               :player :white}
-              {:Castling :KingSide})
-  (move-piece {:positions {:white #{'(rook [1 1]) '(rook [8 1]) '(king [5 1])}
-                           :black #{'(rook [1 8]) '(rook [8 8]) '(king [5 8])}}
-               :history []
-               :player :white}
-              [[1 1] [1 8]]))
-
+;; FIX this is way too long and must be improved
 (defn possible-positions-to-destination
   "Can help to parse PGN (see namespace interface). It considers the
   current player as a basic optimisation."
   [state [x y]]
-  (run* [q]
-    (membero q (positions-from-state state (:player state)))
-    (project [q]
-             (membero [x y] (moves-from-state-position state q)))))
-
-(comment
-  (possible-positions-to-destination initial-state [1 3]))
-
-;; OK, so it's sound rather good now.
-;;
-;; We can add some functions for checking history consistency given an
-;; initial state; some constraint programming to find which histories
-;; can be used from a state to reach another one; some constraint
-;; programming to check whether a final state is reachable in less than
-;; n moves, given an initial state.
-;;
-;; We could also dive into artificial intelligence and define some
-;; strategies.
+  (run* [position]
+    (state->type-colour-position-o state (lvar) (:player state) position)
+    (project [position]
+             (membero [x y] (moves-from-state-position state position)))))
 
 (defn move-pieces-from-state-through-history
   "Reduction of an history on a given state."
@@ -358,14 +212,6 @@ king queen rook bishop knight pawn
   (reduce move-piece
           state
           history))
-
-(comment
-  (move-pieces-from-state-through-history
-              {:player :black
-               :history [[[8 1] [8 8]]]
-               :positions {:white #{'(rook [8 1] [8 8]) '(rook [1 1]) '(king [5 1])}
-                           :black #{'(rook [1 8]) '(rook [8 8] nil) '(king [5 8])}}}
-              []))
 
 ;; Not that impressive, but once we can do this we can extend to full history. Just mock version, should be extended to any distance.
 (defn one-move-far-state-from-state?
@@ -383,19 +229,6 @@ king queen rook bishop knight pawn
                                                                     [[[x1? y1?] [x2? y2?]]])))
                      (l/== constraint-history [[[x1? y1?] [x2? y2?]]])))))
       empty? not))
-
-(comment
-  (one-move-far-state-from-state? initial-state
-                                  (move-piece initial-state [2 1] [2 3])))
-
-(comment
-  (let [test-state {:history [[[1 1] [2 2]]]
-                    :player :white
-                    :positions {:white #{['queen [1 1] [2 2]] ['queen [8 1]]
-                                         ['queen [7 3]] ['queen [7 4]]}
-                                :black #{['queen [8 4]]}}}]
-    (one-move-far-state-from-state? initial-state
-                                    test-state)))
 
 (defn binary-numbers
   "Returns all possible binary numbers under a certain length.
@@ -418,19 +251,6 @@ king queen rook bishop knight pawn
   "Returns a structured vector of logic variables which suits history structure."
   [n]
   (-> (repeatedly (* 2 2 n) lvar) seq-history))
-
-(comment
-  ;; Something a bit vain: compute all the $2^{12*n}$ possibility for n
-  ;; moves. Anway, now we can refine it to find all allowed moves from
-  ;; given state.
-  ;; This makes my JVM crashes because of OutOfMemoryError GC overhead
-  ;; limit exceeded. LOL
-  (-> (do
-        (let [b (logic-history 2)]
-          (run* [q]
-            (everyg #(membero % (range boardsize)) (vec (flatten b)))
-            (l/== q b))))
-      count println))
 
 ;; Returns
 (declare history-from-state-to-state)

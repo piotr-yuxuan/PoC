@@ -24,19 +24,19 @@
   "The initial state of the game of chess.
 
   This is immutable."
-  (let [white #{'(king [5 1]) '(queen [4 1])
-                '(rook [1 1]) '(rook [8 1])
-                '(bishop [3 1]) '(bishop [6 1])
-                '(knight [2 1]) '(knight [7 1])
-                '(pawn [1 2]) '(pawn [2 2]) '(pawn [3 2]) '(pawn [4 2])
-                '(pawn [5 2]) '(pawn [6 2]) '(pawn [7 2]) '(pawn [8 2])}
-        symmetry (fn [boardsize set]
+  (let [white ['(king [5 1]) '(queen [4 1])
+               '(rook [1 1]) '(rook [8 1])
+               '(bishop [3 1]) '(bishop [6 1])
+               '(knight [2 1]) '(knight [7 1])
+               '(pawn [1 2]) '(pawn [2 2]) '(pawn [3 2]) '(pawn [4 2])
+               '(pawn [5 2]) '(pawn [6 2]) '(pawn [7 2]) '(pawn [8 2])]
+        symmetry (fn [boardsize vect]
                    (map #(let [[a & b] %
                                [c d] (last b)]
                            (list a [c (- (inc boardsize) d)]))
-                        set))]
+                        vect))]
     {:positions {:white white
-                 :black (set (symmetry boardsize white))}
+                 :black (vec (symmetry boardsize white))}
      :history []
      :player :white}))
 

@@ -11,6 +11,12 @@
    [(fd/- a b out)]
    [(fd/- b a out)]))
 
+(defn lasto
+  "Declares x as the last item of l"
+  [x l]
+  (fresh [_]
+    (appendo _ [x] l)))
+
 (defn str-mutate
   "Insert c in string s at index i with offset o. Offset 0 puts c and
   shift others, offset 1 replaces the character."
