@@ -392,13 +392,13 @@ Nf2 42. g4 Bd3 43. Re6 1/2-1/2")
     (reduce #(let [arrow (atom-reducer % %2)
                    [from to] (if (vector? arrow) arrow (:position arrow))
                    new-state (do
-                               (println "oldish-state:" %)
+                               (println arrow)
                                (move-piece % arrow))]
                new-state)
             state
             inputmap)))
 
-(pgn-parser pgn-sample)
+;;(pgn-parser pgn-sample)
 
 (defn parser-factory
   "A string is taken as input by the tokeniser which returns nested

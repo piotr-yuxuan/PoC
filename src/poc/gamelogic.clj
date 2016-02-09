@@ -18,31 +18,60 @@
     (firsto item type)
     (lasto position item)))
 
+;; Two versions are offered: add a constraint over an output lvar or get
+;; the result from traditionnal programming.
+(defn positions-from-state-o
+  ([position state]
+   (positions-from-state state position))
+  ([position state colour]
+   (state->type-colour-position-o state (lvar) colour position)))
+
 (defn positions-from-state
   ([state]
-   (positions-from-state state (lvar)))
+   (positions-from-state (:positions state) nil))
   ([state colour]
-   (run* [position]
-     (state->type-colour-position-o state (lvar) colour position))))
+   (let [positions (:positions state)
+         reduced (if (nil? colour)
+                   (mapcat second state)
+                   (get positions colour))]
+     (filter #(-> % nil? not) (map last reduced))))
+  ([position colour turn]
+   nil))
 
-(comment
-  (positions-from-state initial-state :white))
+(defn positions-per-color
+  ([state turn]
+   (positions-per-color state))
+  ([state]
+   (reduce #(assoc % %2 (positions-from-state state %2))
+           {} (keys (:positions initial-state)))))
+
+(defn type-from-state-position-o
+  [type state position]
+  (state->type-colour-position-o state type (lvar) position))
 
 (defn type-from-state-position
   [state [x y]]
-  (first (run* [type]
-           (state->type-colour-position-o state type (lvar) [x y]))))
+  (first (run* [q]
+           (fresh [a u v]
+             (membero a (map #(vector (first %) (last %))
+                             (get-in state [:positions (:player state)])))
+             (conso q [[u v]] a)
+             (l/== x u)
+             (l/== y v)))))
 
-(comment
-  (type-from-state-position initial-state [5 1]))
+(defn colour-from-state-position-o
+  [colour state [x y]]
+  (state->type-colour-position-o state (lvar) colour [x y]))
 
 (defn colour-from-state-position
   [state [x y]]
-  (first (run* [colour]
-           (state->type-colour-position-o state (lvar) colour [x y]))))
-
-(comment
-  (colour-from-state-position initial-state [1 8]))
+  (first (run* [q]
+           (fresh [a b c d]
+             (membero a (vec (positions-per-color state)))
+             (l/== a [b c])
+             (l/== d [x y])
+             (membero d c)
+             (l/== q b)))))
 
 ;; Here are the pieces. They are plain functions.
 king queen rook bishop knight pawn
@@ -95,34 +124,61 @@ king queen rook bishop knight pawn
                    {}
                    '(king queen rook bishop knight pawn)))
 
+;; (defn moves-from-state-position
+;;   "If the result is not what you expect, think about checking the
+;;   parameters: maybe you tried to move a piece which is not yours or
+;;   perhaps it's not your turn."
+;;   [state [x y]]
+;;   (when type
+;;     (distinct
+;;      (let [state->o state->type-colour-position-o
+;;            obstacles (run* [position]
+;;                        (state->o state (lvar) (lvar) position))
+;;            friends  (run* [position]
+;;                            (state->o state (lvar) (:player state) position)
+;;                            (l/!= nil position))]
+;;        (run* [?]
+;;          (fresh [a b type colour]
+;;            ;; Stay inside the board for the sake of fun
+;;            (membero a (range 1 (inc boardsize)))
+;;            (membero b (range 1 (inc boardsize)))
+;;            ;; Get all available moves for that kind of piece
+;;            (state->o state type colour [x y])
+;;            (project [type]
+;;                     (apply (get function-table type) [[x y] [a b] state]))
+;;            ;; Unify q with working logic variables
+;;            (l/== ? [a b])
+;;            ;; Avoid friends
+;;            (nafc membero ? friends)
+;;            ;; Don't go beyond obstacles
+;;            (nafc unreachable-positions obstacles [x y] [a b])))))))
+
 (defn moves-from-state-position
   "If the result is not what you expect, think about checking the
   parameters: maybe you tried to move a piece which is not yours or
   perhaps it's not your turn."
   [state [x y]]
-  (when type
-    (distinct
-     (let [state->o state->type-colour-position-o
-           obstacles (run* [position]
-                       (state->o state (lvar) (lvar) position))
-           friends  (run* [position]
-                           (state->o state (lvar) (:player state) position)
-                           (l/!= nil position))]
+  (let [type (get function-table (type-from-state-position state [x y]))
+        obstacles (positions-from-state state)
+        current-player (colour-from-state-position state [x y])
+        friends (positions-from-state state (:player state))]
+    (when type
+      (distinct
        (run* [?]
-         (fresh [a b type colour]
+         (fresh [a b]
            ;; Stay inside the board for the sake of fun
            (membero a (range 1 (inc boardsize)))
            (membero b (range 1 (inc boardsize)))
            ;; Get all available moves for that kind of piece
-           (state->o state type colour [x y])
-           (project [type]
-                    (apply (get function-table type) [[x y] [a b] state]))
+           (type [x y] [a b] state)
            ;; Unify q with working logic variables
            (l/== ? [a b])
            ;; Avoid friends
            (nafc membero ? friends)
            ;; Don't go beyond obstacles
-           (nafc unreachable-positions obstacles [x y] [a b])))))))
+           (nafc unreachable-positions obstacles [x y] [a b])
+           ;; Move only your own pieces.
+           (l/== (:player state) current-player)))))))
 
 (defmulti castling-from-side-and-player
   "Returns {:rook [[] []] :king [[] []]}. Multimethod is more
@@ -165,8 +221,6 @@ king queen rook bishop knight pawn
 
 (defmethod move-piece (type {})
   [state arrow]
-  (println "move-piece arrow: " arrow)
-  (println "state: " state)
   (let [current-player (:player state)
         old-player-positions (get (:positions state) current-player)
         new-player-positions (reduce #(change-piece-position % (first %2) (second %2))
@@ -201,10 +255,10 @@ king queen rook bishop knight pawn
   "Can help to parse PGN (see namespace interface). It considers the
   current player as a basic optimisation."
   [state [x y]]
-  (run* [position]
-    (state->type-colour-position-o state (lvar) (:player state) position)
-    (project [position]
-             (membero [x y] (moves-from-state-position state position)))))
+  (run* [q]
+    (membero q (positions-from-state state (:player state)))
+    (project [q]
+             (membero [x y] (moves-from-state-position state q)))))
 
 (defn move-pieces-from-state-through-history
   "Reduction of an history on a given state."
