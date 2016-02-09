@@ -386,19 +386,21 @@ Nf2 42. g4 Bd3 43. Re6 1/2-1/2")
   [[5 2] [5 4]])
 
 (defn pgn-reducer
-  [state input]
-  (let [inputmap (map (fn [arg] (reduce #(assoc % (first %2) (second %2)) {} arg))
-                      input)]
-    (reduce #(let [arrow (atom-reducer % %2)
-                   [from to] (if (vector? arrow) arrow (:position arrow))
-                   new-state (do
-                               (println arrow)
-                               (move-piece % arrow))]
-               new-state)
-            state
-            inputmap)))
-
-;;(pgn-parser pgn-sample)
+  "Optional argument: debug. It's a function which gets one argument as
+  a map with the following keys: :arrow :from :to :state
+  and :move."
+  ([state input]
+   (pgn-reducer state identity input))
+  ([state debug input]
+   (let [inputmap (map (fn [arg] (reduce #(assoc % (first %2) (second %2)) {} arg))
+                       input)]
+     (reduce #(let [arrow (atom-reducer % %2)
+                    [from to] (if (vector? arrow) arrow (:position arrow))
+                    new-state (move-piece % arrow)]
+                (debug {:arrow arrow :from from :to to :state % :move %2})
+                new-state)
+             state
+             inputmap))))
 
 (defn parser-factory
   "A string is taken as input by the tokeniser which returns nested
@@ -433,13 +435,14 @@ Nf2 42. g4 Bd3 43. Re6 1/2-1/2")
                     reducer)))
 
 (comment
- (custom-parser custom-sample))
+  (custom-parser custom-sample))
 
 (def pgn-parser
   "If I also parse the FEN notation I will be able to start from any
   board (with enhanced reducer parameter) but this seems a bit too
   specific for now. I might add it perhaps in a later time."
-  (let [tokeniser pgn-tokeniser
+  (let [debug identity ;; #(println (:arrow %))
+        tokeniser pgn-tokeniser
         presenter (fn [input]
                     (let [upper :Movetext
                           get-in-kw [:PGN :Movetext :Token]
@@ -450,13 +453,15 @@ Nf2 42. g4 Bd3 43. Re6 1/2-1/2")
                           post)))
         translator (partial pgn-translator pgn-token-grammar)
         reducer (let [special-moves [:Castling]]
-                  (partial pgn-reducer initial-state))]
+                  (partial pgn-reducer initial-state debug))]
     (parser-factory tokeniser
                     presenter
                     translator
                     reducer)))
 
 (comment
+  (pgn-parser pgn-sample)
+
   (display-state-on-board  {:positions {:white #{'(rook [1 1])
                                                  '(rook [8 1])
                                                  '(king [5 1])}
