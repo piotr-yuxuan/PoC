@@ -86,17 +86,15 @@ From an ArchLinux point of view it's very easy: just install the package  `unity
 
 ## Usage
 
-FIXME: explanation
+A Clojure program is like a living body: start a REPL, load a namespace then invoke functions.
 
-    $ java -jar firstshot-0.1.0-standalone.jar [args]
+> Energy starts surging through your fingertips. Sparks fly, making the shadows grow and flicker ominously around you. You arch your back and open your eyes as if for the first time. The text appears more vibrant and colourful. Your fingers dance on the keyboard commanding the cursor with a joyful precision and control. You lean back and marvel as a shimmering swirl of syntactic and semantic structures project out of the screen and intertwine with a fractal beauty. You watch as meaning recursively unfolds into deeper meaning live in front of your eyes,
 
-## Options
-
-FIXME: listing of options this app accepts.
+– as would say Sam Aaron ;-)
 
 ## Examples
 
-...
+Examples can be found in test files. They are useful to understand how to use these lines of code.
 
 ## License
 

@@ -22,7 +22,7 @@
 ;; the result from traditionnal programming.
 (defn positions-from-state-o
   ([position state]
-   (positions-from-state state position))
+   (positions-from-state-o state position))
   ([position state colour]
    (state->type-colour-position-o state (lvar) colour position)))
 
@@ -123,35 +123,6 @@ king queen rook bishop knight pawn
   (reduce #(assoc % %2 (eval %2))
                    {}
                    '(king queen rook bishop knight pawn)))
-
-;; (defn moves-from-state-position
-;;   "If the result is not what you expect, think about checking the
-;;   parameters: maybe you tried to move a piece which is not yours or
-;;   perhaps it's not your turn."
-;;   [state [x y]]
-;;   (when type
-;;     (distinct
-;;      (let [state->o state->type-colour-position-o
-;;            obstacles (run* [position]
-;;                        (state->o state (lvar) (lvar) position))
-;;            friends  (run* [position]
-;;                            (state->o state (lvar) (:player state) position)
-;;                            (l/!= nil position))]
-;;        (run* [?]
-;;          (fresh [a b type colour]
-;;            ;; Stay inside the board for the sake of fun
-;;            (membero a (range 1 (inc boardsize)))
-;;            (membero b (range 1 (inc boardsize)))
-;;            ;; Get all available moves for that kind of piece
-;;            (state->o state type colour [x y])
-;;            (project [type]
-;;                     (apply (get function-table type) [[x y] [a b] state]))
-;;            ;; Unify q with working logic variables
-;;            (l/== ? [a b])
-;;            ;; Avoid friends
-;;            (nafc membero ? friends)
-;;            ;; Don't go beyond obstacles
-;;            (nafc unreachable-positions obstacles [x y] [a b])))))))
 
 (defn moves-from-state-position
   "If the result is not what you expect, think about checking the
@@ -305,6 +276,17 @@ king queen rook bishop knight pawn
   "Returns a structured vector of logic variables which suits history structure."
   [n]
   (-> (repeatedly (* 2 2 n) lvar) seq-history))
+
+;; Turn it into a better logical function when time available.
+(defn all-possible-moves
+  [state]
+  (run* [q]
+    (fresh [x y a b]
+      (state->type-colour-position-o initial-state (lvar) (:player state) [x y])
+      ;;(moves-from-state-position-o [a b] initial-state [x y])
+      (project [x y]
+               (membero [a b] (moves-from-state-position state [x y])))
+      (l/== q [[x y] [a b]]))))
 
 ;; Returns
 (declare history-from-state-to-state)
