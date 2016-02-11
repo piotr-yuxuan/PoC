@@ -92,6 +92,12 @@ A Clojure program is like a living body: start a REPL, load a namespace then inv
 
 – as would say Sam Aaron ;-)
 
+However, if you want to use it as a regular program, just launch:
+
+```
+$ lein run --help
+```
+
 ## Examples
 
 Examples can be found in test files. They are useful to understand how to use these lines of code.

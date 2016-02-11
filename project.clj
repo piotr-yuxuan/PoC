@@ -6,7 +6,9 @@
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [net.mikera/core.matrix "0.49.0"]
                  [org.clojure/core.logic "0.8.10"]
+                 [org.clojure/tools.cli "0.3.3"]
                  [instaparse "1.4.1"]]
+  :main ^:skip-aot poc.core
   :jvm-opts ^:replace []
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}})

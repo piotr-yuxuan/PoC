@@ -55,12 +55,23 @@
 
 ;; The main data structure is a map with weights as keys and vectors of possible moves as values.
 
+;; For the two first moves we look up in an opening book filled with
+;; some stuff from here: https://www.chess.com/openings/. This seems
+;; fair: everybody does like this.
+
 ;; First, we get all our possible moves and weight them with destination.
 ;; We add promotion.
 ;; If castling is possible, we evaluate it and add it.
 ;; If we are about to be eaten, we consider eating the opponent, protecting, escape or sacrifying.
 ;; Then, if we can eat, we think about if we'll be protected, how much we can get with this capture.
-;; Finally, we take the best moveif we have some ties to break or can neither eat or being captured, we rely on destination weights.
+;; Finally, we take the best move if we have some ties to break or can neither eat or being captured, we rely on destination weights.
+
+;; This relies on some fixed tables. Of course any strategies with such
+;; tool is completely superseeded by any modern chess machine. However,
+;; it can be fun to optimize those tables with some genetic algorithm:
+;; just randomly alter tables (not to get stuck in local optimum) then
+;; set up a contest and find the most efficient. It's just a proof of
+;; concept.
 
 (rand-nth (let [themap {1 [0 1 2] 2 [1 2 3] 3 [3 4 5] 4 [4 5 6] 7 [7 8 9]}]
             (get themap (apply max (keys themap)))))

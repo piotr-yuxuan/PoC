@@ -3,10 +3,11 @@
   exterior chess data, functions to generate a board out of a state and
   few side-effect functions to display the board.
 
-  Two parsers are available here. The first is a draft for the second
+  Three parsers are available here. The first is a draft for the second
   which parses Portable Game Notation into a final state. Both of them
   use algebraic chess notation. See the bibliography for firther
-  details.
+  details. The third parses FEN Notation and should be integrated in the
+  second one.
 
   The first parser considers each turns ('1. e4 e5') contains the
   initial and final positions for the piece to move: here it should
@@ -460,4 +461,4 @@ Still have to be implemented: promotion and en-passant (both are seen as
                     translator
                     reducer)))
 
-(def my-sample (pgn-parser pgn-sample))
+;; (pgn-parser pgn-sample)
