@@ -33,6 +33,13 @@
   [piece]
   (get cost-table piece 10))
 
+(defn earning-from-state-position
+  [state position]
+  (if (= (:player state)
+         (colour-from-state-position state position))
+    0 ;; won't occur very often by design
+    (piece-cost (type-from-state-position state position))))
+
 (piece-cost pawn)
 
 (defn dest-weight
@@ -87,6 +94,21 @@
 (conj [3] 4 nil)
 
 (add-map-vec {1 #{1 2}} 1 3 4 5 6)
+
+(defn possible-attacks
+  [state]
+  (let [current (:player initial-state)
+        opponent (if (= :white current) :black :white)]
+    (map (fn [%] {:move %
+                 :fought (possible-positions-to-destination (assoc state :player opponent)
+                                                            (second %))
+                 :earning (type-from-state-position state (second %))})
+         (all-possible-moves state))))
+
+(possible-attacks poc.interface/ttt)
+
+(all-possible-moves ttt)
+(earning-from-state-position poc.interface/ttt [3 5])
 
 (defn next-move
   [state]

@@ -242,6 +242,9 @@
           ""
           (range (* boardsize boardsize))))
 
+(def show-position
+  "◉")
+
 (def special-moves
   "Special moves than can be performed. This immutable."
   [:Castling])

@@ -71,6 +71,23 @@
            (partition boardsize
                       (board-from-state state board)))))
 
+(defn display-positions-on-board
+  ([positions]
+   (display-positions-on-board positions blank-board))
+  ([positions board]
+   (println "-----------------")
+   (let [marked (reduce (fn [board [x y]]
+                         (str-mutate board
+                                     show-position
+                                     (+ (dec x) (* boardsize (- boardsize y)))))
+                       board
+                       positions)]
+     (map println
+             (partition boardsize
+                        marked)))))
+
+(display-positions-on-board [[2 2] [3 3]])
+
 (comment
   (let [history [[[2 2] [2 5]] ;; white
                  [[8 4] [8 2]] ;; black
@@ -461,4 +478,23 @@ Still have to be implemented: promotion and en-passant (both are seen as
                     translator
                     reducer)))
 
-;; (pgn-parser pgn-sample)
+(def pgn-sample-fake "PGN sample"
+  "[Event \"F/S Return Match\"]
+[Site \"Belgrade, Serbia Yugoslavia|JUG\"]
+[Date \"1992.11.04\"]
+[Round \"29\"]
+[White \"Fischer, Robert J.\"]
+[Black \"Spassky, Boris V.\"]
+[Result \"1/2-1/2\"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 {This opening is called the Ruy Lopez.}
+4. Ba4 Nf6 5. O-O Be7 6. Re1 b5 7. Bb3 d6 8. c3 O-O 9. h3 Nb8  10. d4 Nbd7
+11. c4 c6 12. cxb5 axb5 13. Nc3 Bb7 14. Bg5 b4 15. Nb1 h6 16. Bh4 c5 17. dxe5
+Nxe4 18. Bxe7 Qxe7 19. exd6 Qf6 20. Nbd2 Nxd6 21. Nc4 Nxc4 22. Bxc4 Nb6
+23. Ne5 Rae8 1/2-1/2")
+
+(def ttt (pgn-parser pgn-sample-fake))
+
+(display-state-on-board ttt)
+
+(display-positions-on-board (map second (all-possible-moves ttt)))
